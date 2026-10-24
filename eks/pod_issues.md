@@ -1,5 +1,24 @@
 # Pod Issues: Causes, Identification and Fixes
 
+| Issue / Status | Possible Reasons |
+|----------------|------------------|
+| **Pending** | Insufficient CPU / Insufficient memory / No nodes available / Requests larger than any node / Too many pods on node / Taint not tolerated / nodeSelector or node affinity mismatch / Pod anti-affinity / PVC not bound / No StorageClass or provisioner issue / Volume AZ conflict (EBS is single-AZ) / Node cordoned (unschedulable) / ResourceQuota exceeded / Host port conflict / Autoscaler (Cluster Autoscaler/Karpenter) not adding nodes / Node group max size reached |
+| **ContainerCreating** | No pod IPs left (VPC CNI, subnet exhausted) / Node max pods (ENI limit) / `aws-node` pod unhealthy / Secret not found / ConfigMap not found / EBS attach failure / Volume attached to another node (Multi-Attach) / EBS volume in different AZ / EBS attach limit per instance / EFS mount failure (port 2049, mount target) / EBS CSI driver or IAM issue / Large image still pulling / Pod sandbox creation failure / Node disk full |
+| **ImagePullBackOff / ErrImagePull** | Wrong image name or typo / Tag does not exist / Private registry with no imagePullSecret / ECR permission missing on node role / No NAT Gateway or VPC endpoints (ecr.api, ecr.dkr, S3) / Docker Hub rate limit / Wrong CPU architecture (amd64 vs arm64) / Security group or NACL blocking port 443 / `imagePullPolicy: Never` with no local image / Invalid image reference |
+| **Init:0/1 (stuck)** | Init container waiting on a dependency (DB, service) / DNS resolution failing (CoreDNS) / Wrong host or port in the init script / Infinite wait loop with no timeout / Init container is a long-running process (never exits) |
+| **Init:Error / Init:CrashLoopBackOff** | Init script exits non-zero / Wrong command or args / Permission denied on volume (`chown`/`chmod`) / Missing env var or Secret / Dependency unreachable / Init container OOMKilled |
+| **CrashLoopBackOff** | Application exception on startup / Missing or wrong environment variable / Cannot connect to DB, cache or API / Wrong command or args (exit 127/126) / Main process exits immediately (exit 0) / OOMKilled (exit 137) / Liveness probe failing / App binds to 127.0.0.1 instead of 0.0.0.0 / Permission denied (non-root, read-only filesystem) / Config file missing or bad mount / Wrong CPU architecture (`exec format error`) / Script with CRLF line endings / IAM or credentials missing (AccessDenied, Pod Identity/IRSA) / Segmentation fault (exit 139) / Dependency not ready at startup |
+| **OOMKilled (exit 137)** | Memory limit too low / Memory leak / JVM heap larger than container limit / Traffic spike or large payloads / Requests far below real usage / Node memory pressure |
+| **CreateContainerConfigError** | Secret not found / ConfigMap not found / Key missing in Secret or ConfigMap / `runAsNonRoot` set but image runs as root / Invalid securityContext |
+| **CreateContainerError / RunContainerError** | Invalid command or entrypoint / Bad volume mount or `subPath` / Runtime cannot start the container / Permission issue / Missing binary in the image |
+| **Running but 0/1 Ready** | Readiness probe failing / Wrong probe path, port or scheme (HTTP vs HTTPS) / App slow to start (no startupProbe) / Probe timeout too short / Dependency down and health endpoint checks it / ALB readiness gate not satisfied / Sidecar container not ready |
+| **Running and Ready but no traffic** | Service selector does not match pod labels / Wrong targetPort / App bound to localhost / NetworkPolicy blocking / Security group blocking ALB to pod / Wrong ALB health check path or port / Wrong IngressClass / kube-proxy problem / CoreDNS problem / Pod terminating but still registered in ALB |
+| **Evicted** | Node memory pressure / Node disk pressure / Ephemeral storage limit exceeded / PID pressure / BestEffort pod (no requests or limits) evicted first |
+| **Terminating (stuck)** | Finalizer not removed / App ignores SIGTERM / Long `preStop` hook / Volume cannot detach / Node NotReady or unreachable |
+| **Unknown / Node NotReady** | EC2 instance stopped or crashed / kubelet down / Node cannot reach API server (security group, route, endpoint access) / CNI not ready (`NetworkUnavailable`) / DiskPressure, MemoryPressure or PIDPressure / Node role not authorized (Access Entry or aws-auth) |
+| **Pods not created at all** | ResourceQuota exceeded / LimitRange violation / Admission webhook rejection / Pod Security Standards violation / ServiceAccount not found / Webhook unreachable / Invalid manifest / Deployment paused or replicas = 0 |
+| **Error / Completed** | Container exited non-zero (Error) / Container exited 0 (Completed, normal for Jobs, wrong for long-running apps) / `activeDeadlineSeconds` exceeded (DeadlineExceeded) |
+
 ## Contents
 
 1. [First 3 commands for any pod issue](#1-first-3-commands-for-any-pod-issue)
