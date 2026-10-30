@@ -1,3 +1,97 @@
+AWS Load Balancer Controller – Simple breakdown
+1. Kubernetes resources (inside EKS)
+These are created or managed inside Kubernetes:
+1. Ingress – Defines how external traffic reaches your application.
+2. Service – Exposes your application pods.
+3. TargetGroupBinding – Connects a Kubernetes Service to an AWS Target Group.
+4. Ingress annotations – Define AWS-specific ALB configurations.
+2. AWS resources (inside AWS account)
+These are actual AWS infrastructure resources:
+1. Application Load Balancer (ALB) – Receives incoming HTTP/HTTPS traffic.
+2. Target Group – Contains the registered application targets (pod IPs or instances).
+3. Listener – Listens on ports such as 80 and 443.
+4. Listener Rules – Define routing based on hostnames and URL paths.
+5. Security Groups – Control network access to the ALB.
+3. What does AWS Load Balancer Controller do?
+
+
+
+
+
+
+
+linkedin.com
+
+
+The controller runs as a Pod inside EKS.
+
+Its job is:
+1. Watches Kubernetes Ingress and Service resources.
+2. Reads ALB annotations and configurations.
+3. Uses AWS APIs with IAM permissions (IRSA or EKS Pod Identity).
+4. Creates or configures ALB, Target Groups, Listeners and Listener Rules.
+5. Registers application targets in Target Groups.
+6. Continuously reconciles AWS infrastructure with Kubernetes configuration.
+4. Complete traffic flow
+User / Browser
+      |
+      v
+AWS ALB
+      |
+      v
+Listener (80/443)
+      |
+      v
+Listener Rules
+      |
+      v
+Target Group
+      |
+      v
+Kubernetes Service
+      |
+      v
+Application Pods
+
+
+Interview answer
+"The AWS Load Balancer Controller runs inside EKS. It watches Kubernetes Ingress and Service resources, reads the AWS-specific annotations, and communicates with AWS APIs using IAM permissions to provision and manage ALBs, Target Groups, Listeners and routing rules. This automates the integration between Kubernetes workloads and AWS load balancing."
+
+
+
+CRD (Definition)
+Already installed by the AWS Load Balancer Controller. It defines the TargetGroupBinding resource type.
+kubectl get crd targetgroupbindings.elbv2.k8s.aws
+
+
+CR (Custom Resource)
+This entire YAML is the CR:
+apiVersion: elbv2.k8s.aws/v1beta1
+kind: TargetGroupBinding
+metadata:
+  name: employee-tgb
+spec:
+  serviceRef:
+    name: employee-service
+    port: 8080
+  targetGroupARN: <target-group-arn>
+
+
+Here:
+- kind: TargetGroupBinding → Resource type.
+- metadata.name: employee-tgb → Name of the CR.
+- Entire YAML → CR object.
+
+Remember
+Term	Meaning
+CRD	Defines TargetGroupBinding
+CR	Entire employee-tgb YAML object
+CR name	employee-tgb
+Controller	Watches and processes the CR
+
+Simple analogy: CRD is the form design, CR is the filled form, and the controller is the person processing it.
+
+
 1. What is a CRD?
 CRD stands for Custom Resource Definition.
 
